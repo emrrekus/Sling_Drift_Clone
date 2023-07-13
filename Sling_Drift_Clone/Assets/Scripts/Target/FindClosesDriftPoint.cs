@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class FindClosesDriftPoint : MonoBehaviour
 {
-    [SerializeField] private GameObject _player;
+    public GameObject player;
     public event Action<Transform> OnClosestDriftPointFound;
     public Transform[] driftPoints;
 
@@ -16,12 +16,12 @@ public class FindClosesDriftPoint : MonoBehaviour
 
     private void FindAndTriggerClosestPointEvent()
     {
-        float closestDistance = Mathf.Infinity; 
+        float closestDistance = Mathf.Infinity;
         Transform closestPoint = null;
 
         foreach (Transform point in driftPoints)
         {
-            float distance = Vector3.Distance(_player.transform.position, point.position);
+            float distance = Vector3.Distance(player.transform.position, point.position);
 
             if (distance < closestDistance)
             {

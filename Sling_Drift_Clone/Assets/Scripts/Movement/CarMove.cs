@@ -5,14 +5,14 @@ using UnityEngine;
 
 public class CarMove : MonoBehaviour
 {
-    [SerializeField] private GameObject _player;
+   
     [SerializeField] private float speed;
 
     private Rigidbody2D rb;
 
     private void Start()
     {
-        rb = _player.gameObject.GetComponent<Rigidbody2D>();
+        rb =GetComponent<Rigidbody2D>();
     }
 
     void Update()

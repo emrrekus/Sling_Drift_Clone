@@ -5,26 +5,65 @@ using UnityEngine;
 
 public abstract class DriftCar : MonoBehaviour
 {
-    [SerializeField] private GameObject _player;
     [Header("Car Drift Ancher")] [SerializeField]
     protected Transform _target;
 
-    [SerializeField] protected LineRenderer lineRenderer;
-    [SerializeField] protected DistanceJoint2D distanceJoint;
+    public LineRenderer lineRenderer;
+    public DistanceJoint2D distanceJoint;
 
-    [Header("Car Drift Rotation")] 
-    protected Vector3 direction;
+    [Header("Car Drift Rotation")] protected Vector3 direction;
     [SerializeField] protected float MoveSpeed;
     [SerializeField] protected float Traction;
+
+    protected bool isOnDrift;
+    public bool isOnRotationControl;
+
+
+    private FindClosesDriftPoint findClosestPoint;
+    private CornerRotate cornerRotate;
+
+
+    [Header("Car Drift Rotation Control")] [SerializeField]
+    protected float rotationThreshold;
+
+    [SerializeField] protected float smoothSpeed;
+    [SerializeField] protected float targetRotation;
+    [SerializeField] protected float completionThreshold;
+    protected bool isTurnComplete;
 
 
     private void Awake()
     {
-        lineRenderer = _player.gameObject.GetComponent<LineRenderer>();
-        distanceJoint = _player.gameObject.GetComponent<DistanceJoint2D>();
+        cornerRotate = GetComponent<CornerRotate>();
+        findClosestPoint = FindObjectOfType<FindClosesDriftPoint>();
+    }
+
+    private void Start()
+    {
+        lineRenderer = GetComponent<LineRenderer>();
+        distanceJoint = GetComponent<DistanceJoint2D>();
+
         distanceJoint.enabled = false;
     }
-    
+
+    private void OnEnable()
+    {
+        if (findClosestPoint != null)
+            findClosestPoint.OnClosestDriftPointFound += TheNearestDriftAnchor;
+
+        if (cornerRotate != null)
+            cornerRotate.OnMovementDirectionChange += RotateCar;
+    }
+
+    private void OnDisable()
+    {
+        if (findClosestPoint != null)
+            findClosestPoint.OnClosestDriftPointFound -= TheNearestDriftAnchor;
+
+        if (cornerRotate != null)
+            cornerRotate.OnMovementDirectionChange -= RotateCar;
+    }
+
     protected void HookOn()
     {
         distanceJoint.enabled = true;
@@ -32,9 +71,10 @@ public abstract class DriftCar : MonoBehaviour
         LineRendererSetPosition();
         DriftAncher();
     }
-    
+
     protected void HookOff()
     {
+        isOnRotationControl = true;
         distanceJoint.enabled = false;
         lineRenderer.positionCount = 0;
     }
@@ -46,10 +86,53 @@ public abstract class DriftCar : MonoBehaviour
         lineRenderer.SetPosition(1, transform.position);
     }
 
+
     private void DriftAncher()
     {
-        float rotationAmount = MoveSpeed * Traction * Time.deltaTime * 10;
+        float rotationAmount = MoveSpeed * Traction * Time.deltaTime * 13;
         transform.RotateAround(_target.position, direction, rotationAmount);
     }
-    
+
+
+    private void TheNearestDriftAnchor(Transform closestPoint)
+    {
+        _target = closestPoint;
+    }
+
+    private void RotateCar(Vector3 direction)
+    {
+        this.direction = direction;
+    }
+
+    public void CanitDrift(bool canDrift)
+    {
+        isOnDrift = canDrift;
+    }
+
+    protected void DriftRotationControlCar()
+    {
+        isTurnComplete = false;
+        float currentRotation = transform.eulerAngles.z;
+
+        if (currentRotation < rotationThreshold || (currentRotation > 230f && currentRotation < 360f))
+            targetRotation = 0f;
+        else if (currentRotation < 135f)
+            targetRotation = 90f;
+        else if (currentRotation < 230f)
+            targetRotation = 180f;
+        else if (currentRotation > rotationThreshold - 100f)
+            targetRotation = -90f;
+
+
+        float newRotation = Mathf.LerpAngle(transform.eulerAngles.z, targetRotation, smoothSpeed * Time.deltaTime);
+        transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, newRotation);
+
+
+        if (!isTurnComplete && Mathf.Abs(currentRotation - targetRotation) < completionThreshold)
+        {
+            isOnRotationControl = false;
+            isTurnComplete = true;
+            Debug.Log("Dönüş tamamlandı!");
+        }
+    }
 }

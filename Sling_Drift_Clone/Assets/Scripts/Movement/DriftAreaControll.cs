@@ -5,19 +5,22 @@ using UnityEngine;
 
 public class DriftAreaControll : MonoBehaviour
 {
-    private bool isDrift;
-
-    public bool ISDRİFT => isDrift;
-
     private void OnTriggerEnter2D(Collider2D col)
     {
+        DriftCar driftCar = col.gameObject.GetComponent<DriftCar>();
         if (col.gameObject.CompareTag("Car"))
         {
-            isDrift = true;
+            driftCar.CanitDrift(true);
         }
-        else
+       
+    }
+    private void OnTriggerExit2D(Collider2D col)
+    {
+        DriftCar driftCar = col.gameObject.GetComponent<DriftCar>();
+        if (col.gameObject.CompareTag("Car"))
         {
-            isDrift = false;
+            driftCar.CanitDrift(false);
         }
+      
     }
 }
