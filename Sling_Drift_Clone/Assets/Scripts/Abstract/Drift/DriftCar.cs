@@ -111,21 +111,22 @@ public abstract class DriftCar : MonoBehaviour
 
     protected void DriftRotationControlCar()
     {
-        isTurnComplete = false;
-        float currentRotation = transform.eulerAngles.z;
+        float currentRotation = transform.rotation.eulerAngles.z;
+        
+        Debug.Log(currentRotation);
 
-        if (currentRotation < rotationThreshold || (currentRotation > 230f && currentRotation < 360f))
+     
+        if (currentRotation < rotationThreshold)
             targetRotation = 0f;
         else if (currentRotation < 135f)
             targetRotation = 90f;
         else if (currentRotation < 230f)
             targetRotation = 180f;
-        else if (currentRotation > rotationThreshold - 100f)
-            targetRotation = -90f;
+      
 
-
-        float newRotation = Mathf.LerpAngle(transform.eulerAngles.z, targetRotation, smoothSpeed * Time.deltaTime);
-        transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, newRotation);
+        Quaternion newRotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y,
+            targetRotation);
+        transform.rotation = Quaternion.Lerp(transform.rotation, newRotation, smoothSpeed * Time.deltaTime);
 
 
         if (!isTurnComplete && Mathf.Abs(currentRotation - targetRotation) < completionThreshold)
