@@ -11,6 +11,7 @@ public abstract class DriftCar : MonoBehaviour
     public LineRenderer lineRenderer;
     public DistanceJoint2D distanceJoint;
 
+
     [Header("Car Drift Rotation")] protected Vector3 direction;
     [SerializeField] protected float MoveSpeed;
     [SerializeField] protected float Traction;
@@ -24,11 +25,10 @@ public abstract class DriftCar : MonoBehaviour
 
 
     [Header("Car Drift Rotation Control")] [SerializeField]
-    protected float rotationThreshold;
+    protected float smoothSpeed;
 
-    [SerializeField] protected float smoothSpeed;
-    [SerializeField] protected float targetRotation;
     [SerializeField] protected float completionThreshold;
+    [SerializeField] protected float ancherAngle;
     protected bool isTurnComplete;
 
 
@@ -49,7 +49,11 @@ public abstract class DriftCar : MonoBehaviour
     private void OnEnable()
     {
         if (findClosestPoint != null)
+        {
             findClosestPoint.OnClosestDriftPointFound += TheNearestDriftAnchor;
+            findClosestPoint.OnClosestDriftPointAngle += TheNearestDriftAnchorAngle;
+        }
+
 
         if (cornerRotate != null)
             cornerRotate.OnMovementDirectionChange += RotateCar;
@@ -58,7 +62,10 @@ public abstract class DriftCar : MonoBehaviour
     private void OnDisable()
     {
         if (findClosestPoint != null)
+        {
             findClosestPoint.OnClosestDriftPointFound -= TheNearestDriftAnchor;
+            findClosestPoint.OnClosestDriftPointAngle -= TheNearestDriftAnchorAngle;
+        }
 
         if (cornerRotate != null)
             cornerRotate.OnMovementDirectionChange -= RotateCar;
@@ -68,8 +75,8 @@ public abstract class DriftCar : MonoBehaviour
     {
         distanceJoint.enabled = true;
         distanceJoint.connectedAnchor = _target.position;
-        LineRendererSetPosition();
         DriftAncher();
+        LineRendererSetPosition();
     }
 
     protected void HookOff()
@@ -79,7 +86,7 @@ public abstract class DriftCar : MonoBehaviour
         lineRenderer.positionCount = 0;
     }
 
-    private void LineRendererSetPosition()
+    protected void LineRendererSetPosition()
     {
         lineRenderer.positionCount = 2;
         lineRenderer.SetPosition(0, _target.position);
@@ -89,7 +96,7 @@ public abstract class DriftCar : MonoBehaviour
 
     private void DriftAncher()
     {
-        float rotationAmount = MoveSpeed * Traction * Time.deltaTime * 13;
+        float rotationAmount = MoveSpeed * Traction * Time.deltaTime * 10;
         transform.RotateAround(_target.position, direction, rotationAmount);
     }
 
@@ -97,6 +104,11 @@ public abstract class DriftCar : MonoBehaviour
     private void TheNearestDriftAnchor(Transform closestPoint)
     {
         _target = closestPoint;
+    }
+
+    private void TheNearestDriftAnchorAngle(byte Angle)
+    {
+        ancherAngle = Angle;
     }
 
     private void RotateCar(Vector3 direction)
@@ -111,28 +123,15 @@ public abstract class DriftCar : MonoBehaviour
 
     protected void DriftRotationControlCar()
     {
-        float currentRotation = transform.rotation.eulerAngles.z;
-        
-        Debug.Log(currentRotation);
-
-     
-        if (currentRotation < rotationThreshold)
-            targetRotation = 0f;
-        else if (currentRotation < 135f)
-            targetRotation = 90f;
-        else if (currentRotation < 230f)
-            targetRotation = 180f;
-      
-
         Quaternion newRotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y,
-            targetRotation);
+            ancherAngle);
         transform.rotation = Quaternion.Lerp(transform.rotation, newRotation, smoothSpeed * Time.deltaTime);
 
-
-        if (!isTurnComplete && Mathf.Abs(currentRotation - targetRotation) < completionThreshold)
+        float angleDifference = Quaternion.Angle(transform.rotation, newRotation);
+        if (angleDifference < completionThreshold)
         {
             isOnRotationControl = false;
-            isTurnComplete = true;
+            // Dönüş tamamlandı
             Debug.Log("Dönüş tamamlandı!");
         }
     }
